@@ -36,6 +36,9 @@
     color: var(--ink);
     font: 300 16px/1.5 "Work Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
+  body[data-view="gate"] .wrap { display: none; }
+  body[data-view="app"] #gate { display: none; }
+
   .wrap { max-width: 1600px; margin: 0 auto; padding: 28px 16px 48px; }
 
   header.top {
@@ -55,14 +58,17 @@
     padding: 10px 16px; border-radius: 8px; cursor: pointer;
     border: 1px solid var(--field); background: var(--paper); color: var(--ink);
   }
-  .btn:hover { background: var(--tint); }
+  .btn:hover:not(:disabled) { background: var(--tint); }
+  .btn:disabled { opacity: .6; cursor: progress; }
   .btn.primary { background: var(--accent-ink); border-color: var(--accent-ink); color: #fff; }
-  .btn.primary:hover { background: #094c85; }
+  .btn.primary:hover:not(:disabled) { background: #094c85; }
   .btn.danger { color: #a3201a; border-color: #e3b5b2; }
   .btn.danger:hover { background: #fdf0ef; }
   .btn.quiet { border-color: transparent; background: transparent; color: var(--muted); }
-  .btn.quiet:hover { background: var(--tint); color: var(--ink); }
-  .btn:focus-visible, .status:focus-visible { outline: 3px solid var(--accent-ink); outline-offset: 2px; }
+  .btn.quiet:hover:not(:disabled) { background: var(--tint); color: var(--ink); }
+  .btn.wide { width: 100%; margin-top: 14px; }
+  .btn:focus-visible, .status:focus-visible, .link:focus-visible { outline: 3px solid var(--accent-ink); outline-offset: 2px; }
+  .link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent-ink); text-decoration: underline; cursor: pointer; }
 
   .status {
     display: inline-flex; align-items: center; gap: 8px;
@@ -74,8 +80,16 @@
   .status[data-state="ok"] i { background: #2e9e6b; }
   .status[data-state="saving"] i { background: var(--accent); }
   .status[data-state="error"] i { background: #d6453d; }
-  .status[data-state="locked"] i { background: #e0a21b; }
-  .status[data-state="error"], .status[data-state="locked"] { cursor: pointer; color: var(--ink); }
+  .status[data-state="error"] { cursor: pointer; color: var(--ink); }
+
+  /* ---------- start screen ---------- */
+  .gate { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
+  .gate-card {
+    width: min(460px, 100%); background: var(--paper);
+    border: 1px solid var(--ink); border-radius: 12px; padding: 28px 26px 24px;
+  }
+  .check { display: flex; gap: 9px; align-items: center; margin-top: 14px; font-size: 14.5px; font-weight: 400; cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent-ink); }
 
   /* ---------- board ---------- */
   .board {
@@ -112,10 +126,10 @@
   }
   .cell:hover { background: var(--tint); }
 
+  /* task blocks: the text box inside (.txt) is measured and fitted by the script */
   .task {
-    position: absolute; z-index: 1;
-    display: flex; flex-direction: column; gap: 1px;
-    margin: 0; padding: 6px 8px; overflow: hidden;
+    --fn: 14; --fs: 12.5;
+    position: absolute; z-index: 1; margin: 0; padding: 0; overflow: hidden;
     border: 0; border-radius: 6px; text-align: left;
     font: inherit; color: #0b1624; cursor: pointer;
     box-shadow: inset 0 0 0 1px rgba(11, 22, 36, .2);
@@ -124,10 +138,14 @@
   .task:hover { filter: brightness(.95); }
   .task.dim { opacity: .3; }
   .task:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; z-index: 3; }
-  .t-name { font-weight: 500; font-size: 15px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .t-time { font-size: 12.5px; font-weight: 400; font-variant-numeric: tabular-nums; opacity: .8; white-space: nowrap; }
-  .t-venue, .t-details { font-size: 13px; font-weight: 400; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .t-details { opacity: .85; }
+  .txt { position: absolute; display: block; line-height: 1.25; transform-origin: 0 0; white-space: normal; overflow-wrap: normal; }
+  .txt span { display: block; }
+  .txt.inl span { display: inline; }
+  .txt.inl span + span::before { content: " \00b7  "; }
+  .t-name { font-weight: 500; font-size: calc(var(--fn) * var(--k, 1) * 1px); }
+  .t-time, .t-venue, .t-details { font-weight: 400; font-size: calc(var(--fs) * var(--k, 1) * 1px); }
+  .t-time { font-variant-numeric: tabular-nums; opacity: .8; }
+  .t-details { opacity: .88; }
 
   .now { position: absolute; top: 0; bottom: 0; width: 2px; background: #d6453d; z-index: 2; pointer-events: none; }
   .now::before { content: ""; position: absolute; top: -1px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: #d6453d; }
@@ -141,10 +159,11 @@
   }
   dialog::backdrop { background: rgba(15, 27, 45, .42); }
   form { padding: 22px 22px 20px; }
+  .gate-card form { padding: 0; }
   h2 { margin: 0 0 6px; font-size: var(--fs-display-2); font-weight: 300; letter-spacing: -.03em; line-height: 1.05; }
   label.f, legend { display: block; font-size: 13.5px; font-weight: 500; margin: 16px 0 6px; padding: 0; }
   fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-  input[type="text"], input[type="time"], select, textarea {
+  input[type="text"], input[type="password"], input[type="time"], select, textarea {
     width: 100%; font: inherit; font-weight: 400; font-size: 15px; color: var(--ink); background: #fff;
     padding: 9px 10px; border: 1px solid var(--field); border-radius: 8px;
   }
@@ -182,47 +201,84 @@
     .sess select { grid-column: 1 / -1; }
     .sess .icon { grid-column: 3; grid-row: 2; }
     h2 { font-size: 40px; }
+    .gate-card { padding: 22px 18px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
-  /* ---------- print sheet (the PDF) ---------- */
-  #sheet { display: none; }
+  /* ---------- export sheet (PDF and image). Always laid out, parked off-screen ---------- */
+  #sheet {
+    position: absolute; left: -10000px; top: 0; width: 1047px; /* = A4 landscape width inside 10mm margins */
+    background: #fff; color: var(--ink); pointer-events: none;
+  }
   .s-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
   .s-title { margin: 0; font-size: 40px; font-weight: 300; letter-spacing: -.03em; line-height: 1; }
   .s-date { font-size: 12px; color: var(--muted); }
   .s-grid { border: 1px solid var(--ink); }
-  .s-hours, .s-row { display: grid; grid-template-columns: 64px 1fr; }
+  .s-hours, .s-row { display: grid; grid-template-columns: 56px 1fr; }
   .s-hours { border-bottom: 1px solid var(--line); }
   .s-hourcells, .s-track { display: grid; grid-template-columns: repeat(var(--n), 1fr); }
   .s-hourcells span { padding: 5px 0 5px 5px; font-size: 11px; font-weight: 400; color: var(--muted); border-left: 1px solid var(--line); }
   .s-row { border-top: 1px solid var(--line); break-inside: avoid; }
   .s-hours + .s-row { border-top: 0; }
-  .s-day { display: flex; align-items: center; padding-left: 10px; font-size: 22px; font-weight: 300; letter-spacing: -.02em; }
+  .s-day { position: relative; }
+  .s-day span {
+    position: absolute; left: 50%; top: 50%; white-space: nowrap;
+    font-size: 28px; font-weight: 300; letter-spacing: -.02em; line-height: 1;
+    transform: translate(-50%, -50%) rotate(-90deg);
+  }
   .s-track { position: relative; }
   .s-cell { border-left: 1px solid var(--line); }
-  .s-track .task { padding: 3px 5px; cursor: default; border-radius: 4px; }
-  .s-track .t-name { font-size: 11px; }
-  .s-track .t-time, .s-track .t-venue, .s-track .t-details { font-size: 9.5px; }
+  .s-track .task { --fn: 11; --fs: 9.5; box-shadow: none; border: 1px solid rgba(11, 22, 36, .24); border-radius: 4px; cursor: default; }
 
   @page { size: A4 landscape; margin: 10mm; }
   @media print {
     html, body { background: #fff; }
-    .wrap, dialog { display: none !important; }
-    #sheet { display: block; }
+    .wrap, dialog, #gate { display: none !important; }
+    #sheet { position: static; width: auto; zoom: var(--zoom, 1); }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
-<body>
+<body data-view="gate">
+
+<section class="gate" id="gate">
+  <div class="gate-card">
+    <h1>Weekly timetable</h1>
+    <p class="sub" id="g-sub">Open your timetable with your name and PIN.</p>
+    <form id="gate-form" novalidate>
+      <label class="f" for="g-name">Your name</label>
+      <input id="g-name" type="text" maxlength="40" autocomplete="username" placeholder="Your name">
+
+      <label class="f" for="g-pin">PIN</label>
+      <input id="g-pin" type="password" maxlength="20" autocomplete="current-password" placeholder="4 to 20 characters, no spaces">
+
+      <div id="g-create" hidden>
+        <label class="f" for="g-pin2">Confirm PIN</label>
+        <input id="g-pin2" type="password" maxlength="20" autocomplete="new-password" placeholder="Type the PIN again">
+        <label class="check"><input type="checkbox" id="g-sample" checked> Start with a sample week</label>
+      </div>
+
+      <label class="check"><input type="checkbox" id="g-remember" checked> Stay signed in on this device</label>
+      <p class="hint" id="g-hint">Names are not case sensitive. Each name has its own private timetable.</p>
+      <p class="err" id="g-err" role="alert"></p>
+
+      <button class="btn primary wide" id="g-submit" type="submit">Open my timetable</button>
+      <button class="btn quiet wide" id="g-toggle" type="button">New here? Create a timetable</button>
+    </form>
+  </div>
+</section>
+
 <div class="wrap">
   <header class="top">
     <div>
       <h1>Weekly timetable</h1>
+      <p class="sub"><span id="who"></span> &middot; <button type="button" class="link" id="signout">Sign out</button></p>
       <p class="sub">Click any hour to add a task. Click a task to edit it. Hover a task to see its other days.</p>
     </div>
     <div class="actions">
-      <button id="status" class="status" type="button" data-state="local" aria-live="polite"><i></i><span>Loading</span></button>
+      <button id="status" class="status" type="button" data-state="ok" aria-live="polite"><i></i><span>Loading</span></button>
       <button id="clear" class="btn quiet" type="button">Clear all</button>
+      <button id="export-img" class="btn" type="button">Save image</button>
       <button id="export" class="btn" type="button">Export PDF</button>
       <button id="add" class="btn primary" type="button">Add task</button>
     </div>
@@ -271,30 +327,29 @@
 
 <section id="sheet" aria-hidden="true"></section>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script>
-/* ===== Settings ===== */
-const CONFIG = {
-  // Same-origin Pages Function. Leave empty to run on this device only (browser storage).
-  API_URL: "/api/timetable",
-};
-
 /* ===== Constants ===== */
+const API = "/api/timetable";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const COLORS = [
   ["#1e9af0", "Blue"], ["#4cc38a", "Green"], ["#f2b84b", "Amber"],
   ["#f27d72", "Coral"], ["#a58bf2", "Violet"], ["#b8c0cc", "Grey"],
 ];
-const COL = 68;        // hour column width in px (matches --col in CSS)
-const BASE_ROW = 120;  // minimum day row height (fits the 48px day label)
-const LANE_MIN = 64;   // minimum height per stacked (overlapping) block
-const PAD = 4;
-const LS_TASKS = "timetable.tasks.v2";
-const LS_TOKEN = "timetable.token.v1";
-const LS_SEEDED = "timetable.seeded.v2";
+const COL = 68;                 // hour column width in px (matches --col in CSS)
+const SHEET_W = 1047;           // export sheet width in px (A4 landscape inside 10mm margins)
+const LS_SESSION = "timetable.session.v1";
 const HEX = /^#[0-9a-f]{6}$/i;
+const PIN_RE = /^[\x21-\x7E]{4,20}$/;
 
-/* Sample week shown the first time the page is opened (edit or "Clear all" to remove) */
+/* Text fitting. Blocks wider than vMin show text normally; narrower blocks turn the text
+   sideways so it can use the row height. The row grows until everything fits. */
+const SCALES = [1, .92, .85, .78, .72, .66, .6, .55];
+const SCREEN_CFG = { tag: "button", pad: 4, baseRow: 120, laneMin: 64, padX: 7, padY: 5, vpad: 4, vMin: 90, maxH: 320, maxV: 210 };
+const SHEET_CFG  = { tag: "div",    pad: 3, baseRow: 72,  laneMin: 44, padX: 5, padY: 3, vpad: 3, vMin: 80, maxH: 260, maxV: 160 };
+
+/* Sample week offered to new timetables */
 const wk = (days, start, end) => days.map((day) => ({ day, start, end }));
 const SAMPLE = [
   { id: "s-deep", name: "Deep work", venue: "Hostel desk", details: "Hardest task first", color: "#a58bf2",
@@ -348,13 +403,23 @@ function fromInput(v) {
 }
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 const todayIdx = () => (new Date().getDay() + 6) % 7;
+const clone = (x) => JSON.parse(JSON.stringify(x));
+
+/* Same rule as the server, so a name always maps to the same timetable */
+function slugify(s) {
+  return String(s || "")
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+    .slice(0, 32).replace(/-+$/, "");
+}
 
 function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } }
+function lsDel(k) { try { localStorage.removeItem(k); } catch { /* storage unavailable */ } }
 
 /* ===== Data ===== */
 let state = { tasks: [] };
-let loaded = false;
+let session = null; // { name, display, pin }
 
 function normalize(t) {
   if (!t || typeof t !== "object" || !t.name) return null;
@@ -376,19 +441,14 @@ function normalize(t) {
 }
 const normalizeAll = (list) => (Array.isArray(list) ? list.map(normalize).filter(Boolean) : []);
 
+const tasksKey = () => "timetable.tasks.v3." + session.name;
+const pendingKey = () => "timetable.pending.v3." + session.name;
 function readLocal() {
-  try { return normalizeAll(JSON.parse(lsGet(LS_TASKS) || "[]")); } catch { return []; }
+  try { return normalizeAll(JSON.parse(lsGet(tasksKey()) || "[]")); } catch { return []; }
 }
-const saveLocal = () => lsSet(LS_TASKS, JSON.stringify(state.tasks));
+const saveLocal = () => lsSet(tasksKey(), JSON.stringify(state.tasks));
 
-function seed() {
-  state.tasks = normalizeAll(JSON.parse(JSON.stringify(SAMPLE)));
-  lsSet(LS_SEEDED, "1");
-  saveLocal();
-  render();
-}
-
-/* ===== Layout shared by the screen grid and the PDF ===== */
+/* ===== Layout: group a day's sessions into lanes ===== */
 function layoutDay(day) {
   const items = [];
   state.tasks.forEach((t) => t.sessions.forEach((s, i) => {
@@ -406,20 +466,94 @@ function layoutDay(day) {
   return { items, lane, lanes: Math.max(1, ends.length) };
 }
 
-function blockEl(tag, it, g) {
+/* ===== Task blocks that always show all their text ===== */
+function makeBlock(tag, it) {
   const { t, s } = it;
   const color = HEX.test(t.color) ? t.color : COLORS[0][0];
-  const kids = [h("span", { class: "t-name" }, t.name)];
-  if (g.wPx >= g.th.timeW && g.hPx >= g.th.timeH) kids.push(h("span", { class: "t-time" }, `${fmt(s.start)} to ${fmt(s.end)}`));
-  if (t.venue && g.hPx >= g.th.venue) kids.push(h("span", { class: "t-venue" }, t.venue));
-  if (t.details && g.hPx >= g.th.details) kids.push(h("span", { class: "t-details" }, t.details));
-  return h(tag, {
+  const txt = h("span", { class: "txt" },
+    h("span", { class: "t-name" }, t.name),
+    h("span", { class: "t-time" }, `${fmt(s.start)} to ${fmt(s.end)}`),
+    t.venue ? h("span", { class: "t-venue" }, t.venue) : null,
+    t.details ? h("span", { class: "t-details" }, t.details) : null);
+  const el = h(tag, {
     class: "task",
     type: tag === "button" ? "button" : false,
     "data-task": t.id,
-    title: `${t.name}\n${fmt(s.start)} to ${fmt(s.end)}${t.venue ? "\n" + t.venue : ""}`,
-    style: `left:calc(${g.left}% + 1px);width:calc(${g.width}% - 2px);top:${g.top}px;height:${g.hPx}px;background:${color}`,
-  }, kids);
+    title: `${t.name}\n${fmt(s.start)} to ${fmt(s.end)}${t.venue ? "\n" + t.venue : ""}${t.details ? "\n" + t.details : ""}`,
+    style: `background:${color}`,
+  }, txt);
+  return { el, txt };
+}
+
+/* Measure the text and pick the largest size that fits; returns the height this block needs. */
+function fitBlock(b, wPx, cfg) {
+  const { txt } = b;
+  const inner = wPx - 2;                       // blocks are inset 1px each side
+  const fits = () => txt.scrollWidth <= txt.clientWidth + 1;   // false when a long word overflows
+  txt.style.overflowWrap = "normal";
+  txt.style.height = "auto";
+
+  if (wPx >= cfg.vMin) {
+    txt.classList.remove("inl");
+    txt.style.left = cfg.padX + "px";
+    txt.style.top = cfg.padY + "px";
+    txt.style.width = (inner - 2 * cfg.padX) + "px";
+    let ok = false;
+    for (const k of SCALES) {
+      txt.style.setProperty("--k", k);
+      if (fits() && txt.offsetHeight <= cfg.maxH) { ok = true; break; }
+    }
+    if (!ok) txt.style.overflowWrap = "anywhere";
+    return { vertical: false, need: Math.ceil(txt.offsetHeight) + 2 * cfg.padY + 2 };
+  }
+
+  // narrow block: text runs sideways, the row gets taller instead
+  txt.classList.add("inl");
+  txt.style.left = "0px";
+  txt.style.top = "0px";
+  const cross = inner - 2 * cfg.vpad;
+  for (const k of SCALES) {
+    txt.style.setProperty("--k", k);
+    for (let H = cfg.laneMin; H <= cfg.maxV; H += 8) {
+      txt.style.width = (H - 2 * cfg.vpad) + "px";
+      if (fits() && txt.offsetHeight <= cross) return { vertical: true, need: H + 2 };
+    }
+  }
+  txt.style.overflowWrap = "anywhere";
+  txt.style.width = (cfg.maxV - 2 * cfg.vpad) + "px";
+  return { vertical: true, need: cfg.maxV + 2 };
+}
+
+function placeTrack(track, items, lane, lanes, cfg, from, span) {
+  track.querySelectorAll(".task").forEach((n) => n.remove());
+  const trackW = track.clientWidth;
+  const blocks = items.map((it) => {
+    const b = makeBlock(cfg.tag, it);
+    const dur = it.s.end - it.s.start;
+    b.el.style.left = `calc(${((it.s.start - from) / span) * 100}% + 1px)`;
+    b.el.style.width = `calc(${(dur / span) * 100}% - 2px)`;
+    b.el.style.top = "0px";
+    track.append(b.el);
+    Object.assign(b, fitBlock(b, (dur / span) * trackW, cfg));
+    return b;
+  });
+
+  const need = Math.max(cfg.laneMin, ...blocks.map((b) => b.need));
+  const rowH = Math.max(cfg.baseRow, lanes * need + cfg.pad * 2);
+  const laneH = (rowH - cfg.pad * 2) / lanes;
+  track.style.height = rowH + "px";
+
+  blocks.forEach((b, i) => {
+    const boxH = laneH - 2;
+    b.el.style.top = cfg.pad + lane.get(items[i].key) * laneH + "px";
+    b.el.style.height = boxH + "px";
+    if (b.vertical) {
+      b.txt.style.width = (boxH - 2 * cfg.vpad) + "px";
+      b.txt.style.left = cfg.vpad + "px";
+      b.txt.style.top = (boxH - cfg.vpad) + "px";
+      b.txt.style.transform = "rotate(-90deg)";   // reads bottom to top, like the day labels
+    }
+  });
 }
 
 /* ===== Screen grid ===== */
@@ -437,26 +571,11 @@ function buildGrid() {
   });
 }
 
-const SCREEN_TH = { timeW: 110, timeH: 74, venue: 46, details: 66 };
-
 function render() {
+  if (document.body.dataset.view !== "app") return;   // needs to be visible to measure text
   document.querySelectorAll(".track").forEach((track) => {
-    const day = +track.dataset.day;
-    track.querySelectorAll(".task").forEach((n) => n.remove());
-    const { items, lane, lanes } = layoutDay(day);
-    const rowH = Math.max(BASE_ROW, lanes * LANE_MIN + PAD * 2);
-    track.style.height = rowH + "px";
-    const laneH = (rowH - PAD * 2) / lanes;
-    items.forEach((it) => {
-      track.append(blockEl("button", it, {
-        left: it.s.start / 14.4,
-        width: (it.s.end - it.s.start) / 14.4,
-        top: PAD + lane.get(it.key) * laneH,
-        hPx: laneH - 2,
-        wPx: ((it.s.end - it.s.start) / 60) * COL,
-        th: SCREEN_TH,
-      }));
-    });
+    const { items, lane, lanes } = layoutDay(+track.dataset.day);
+    placeTrack(track, items, lane, lanes, SCREEN_CFG, 0, 1440);
   });
   updateNow();
 }
@@ -482,7 +601,7 @@ board.addEventListener("pointerleave", () => highlight(null));
 board.addEventListener("focusin", (e) => { const t = e.target.closest(".task"); highlight(t ? t.dataset.task : null); });
 board.addEventListener("focusout", () => highlight(null));
 
-/* ===== Dialog ===== */
+/* ===== Task dialog ===== */
 const dlg = $("#dlg");
 const form = $("#form");
 let editingId = null;
@@ -597,7 +716,7 @@ $("#delete").addEventListener("click", (e) => {
   commit();
 });
 
-/* ===== Interactions ===== */
+/* ===== Board interactions ===== */
 board.addEventListener("click", (e) => {
   const task = e.target.closest(".task");
   if (task) return openForm({ id: task.dataset.task });
@@ -616,21 +735,19 @@ $("#add").addEventListener("click", () => {
 
 $("#clear").addEventListener("click", () => {
   if (!state.tasks.length) return;
-  if (!confirm("Remove every task from the timetable?")) return;
+  if (!confirm("Remove every task from your timetable?")) return;
   state.tasks = [];
-  lsSet(LS_SEEDED, "1"); // never bring the sample week back
   commit();
 });
 
-/* ===== PDF export (browser print dialog > Save as PDF) ===== */
-const PRINT_BASE = 72, PRINT_LANE = 44, PRINT_PAD = 3;
-const PRINT_TH = { timeW: 80, timeH: 52, venue: 34, details: 60 };
-
+/* ===== Export sheet: used for both the PDF and the image ===== */
 function buildSheet() {
   const sheet = $("#sheet");
   sheet.replaceChildren();
+  sheet.style.removeProperty("--zoom");
+  if (!session) return;
 
-  // show only the hours that are actually used (at least 6 columns)
+  // show only the hours that are used (at least 6 columns)
   const all = state.tasks.flatMap((t) => t.sessions);
   let from = 6, to = 20;
   if (all.length) {
@@ -639,48 +756,82 @@ function buildSheet() {
   }
   while (to - from < 6) { if (to < 24) to++; else if (from > 0) from--; else break; }
   const n = to - from;
-  const span = n * 60;
-  const colPx = 980 / n;
 
   const hourCells = h("div", { class: "s-hourcells" });
   for (let i = from; i < to; i++) hourCells.append(h("span", {}, `${i}:00`));
+  const grid = h("div", { class: "s-grid", style: `--n:${n}` }, h("div", { class: "s-hours" }, h("div"), hourCells));
 
-  const grid = h("div", { class: "s-grid", style: `--n:${n}` },
-    h("div", { class: "s-hours" }, h("div"), hourCells));
-
-  DAYS.forEach((name, di) => {
-    const { items, lane, lanes } = layoutDay(di);
-    const rowH = Math.max(PRINT_BASE, lanes * PRINT_LANE + PRINT_PAD * 2);
-    const laneH = (rowH - PRINT_PAD * 2) / lanes;
-    const track = h("div", { class: "s-track", style: `height:${rowH}px` });
+  const tracks = DAYS.map((_, di) => {
+    const track = h("div", { class: "s-track" });
     for (let i = 0; i < n; i++) track.append(h("div", { class: "s-cell" }));
-    items.forEach((it) => {
-      track.append(blockEl("div", it, {
-        left: ((it.s.start - from * 60) / span) * 100,
-        width: ((it.s.end - it.s.start) / span) * 100,
-        top: PRINT_PAD + lane.get(it.key) * laneH,
-        hPx: laneH - 2,
-        wPx: ((it.s.end - it.s.start) / 60) * colPx,
-        th: PRINT_TH,
-      }));
-    });
-    grid.append(h("div", { class: "s-row" }, h("div", { class: "s-day" }, name), track));
+    grid.append(h("div", { class: "s-row" }, h("div", { class: "s-day" }, h("span", {}, SHORT[di])), track));
+    return track;
   });
 
   const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   sheet.append(
     h("div", { class: "s-head" },
-      h("h1", { class: "s-title" }, "Weekly timetable"),
+      h("h1", { class: "s-title" }, `${session.display}\u2019s timetable`),
       h("span", { class: "s-date" }, `Exported ${date}`)),
     grid);
+
+  // the sheet must be in the page (it is, off-screen) so the text can be measured
+  tracks.forEach((track, di) => {
+    const { items, lane, lanes } = layoutDay(di);
+    placeTrack(track, items, lane, lanes, SHEET_CFG, from * 60, n * 60);
+  });
+
+  // if the content is taller than one page, shrink it to fit when printing
+  const natural = sheet.offsetHeight;
+  if (natural > 700) sheet.style.setProperty("--zoom", (700 / natural).toFixed(3));
 }
 
 window.addEventListener("beforeprint", buildSheet);
 $("#export").addEventListener("click", () => { buildSheet(); window.print(); });
 
-/* ===== Storage: Cloudflare Pages Function (+ local copy) ===== */
-const API = (CONFIG.API_URL || "").trim();
-let saving = false, dirty = false;
+$("#export-img").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  if (typeof html2canvas !== "function") {
+    alert("The image tool didn't load. Check your connection and try again.");
+    return;
+  }
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = "Preparing image";
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    buildSheet();
+    const sheet = $("#sheet");
+    const canvas = await html2canvas(sheet, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      windowWidth: SHEET_W + 80,
+      onclone: (doc) => {
+        const s = doc.getElementById("sheet");
+        s.style.position = "static";
+        s.style.left = "0";
+        s.style.removeProperty("--zoom");
+        doc.querySelector(".wrap").style.display = "none";
+        doc.getElementById("gate").style.display = "none";
+      },
+    });
+    canvas.toBlob((blob) => {
+      const a = h("a", { href: URL.createObjectURL(blob), download: `timetable-${session.name}.png` });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    }, "image/png");
+  } catch {
+    alert("Couldn't create the image. Try again, or use Export PDF.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+});
+
+/* ===== Saving (to your timetable on Cloudflare, with a local copy) ===== */
+let saveTimer = null, saving = false, again = false, loaded = false;
 
 function setStatus(stateName, text) {
   const s = $("#status");
@@ -688,32 +839,36 @@ function setStatus(stateName, text) {
   s.querySelector("span").textContent = text;
 }
 
-function authHeaders(json) {
-  const hd = {};
+const authHeaders = (json) => {
+  const hd = { "X-Name": session.name, "X-Pin": session.pin };
   if (json) hd["Content-Type"] = "application/json";
-  const token = lsGet(LS_TOKEN);
-  if (token) hd.Authorization = "Bearer " + token;
   return hd;
-}
+};
 
 function commit() {
   render();
   saveLocal();
-  sync();
+  lsSet(pendingKey(), "1");
+  setStatus("saving", "Saving");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => sync(), 900);   // batch quick edits into one save
 }
 
-async function sync() {
-  if (!API) return setStatus("local", "Saved on this device");
-  if (saving) { dirty = true; return; }
+async function sync(keepalive = false) {
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  if (!session) return;
+  if (saving) { again = true; return; }
   saving = true;
   setStatus("saving", "Saving");
   try {
     do {
-      dirty = false;
-      const r = await fetch(API, { method: "PUT", headers: authHeaders(true), body: JSON.stringify({ tasks: state.tasks }) });
-      if (r.status === 401) { setStatus("locked", "Enter access key"); return; }
+      again = false;
+      const r = await fetch(API, { method: "PUT", headers: authHeaders(true), body: JSON.stringify({ tasks: state.tasks }), keepalive });
+      if (r.status === 401 || r.status === 404) { signOut("Your PIN no longer matches. Please sign in again."); return; }
       if (!r.ok) throw new Error("HTTP " + r.status);
-    } while (dirty);
+    } while (again);
+    lsDel(pendingKey());
     setStatus("ok", "Saved");
   } catch {
     setStatus("error", "Not saved online. Click to retry");
@@ -722,63 +877,165 @@ async function sync() {
   }
 }
 
-async function load() {
-  state.tasks = readLocal();
-  render();
+$("#status").addEventListener("click", () => {
+  if ($("#status").dataset.state !== "error") return;
+  loaded ? sync() : refresh();
+});
+window.addEventListener("pagehide", () => { if (saveTimer) sync(true); });
 
-  if (!API) {
-    if (!state.tasks.length && !lsGet(LS_SEEDED)) seed();
-    return setStatus("local", "Saved on this device");
+/* ===== Sign in / sign out ===== */
+function sessionStore(remember) { return remember ? localStorage : sessionStorage; }
+function sessionRead() {
+  for (const st of [localStorage, sessionStorage]) {
+    try { const v = st.getItem(LS_SESSION); if (v) return JSON.parse(v); } catch { /* ignore */ }
   }
+  return null;
+}
+function sessionWrite(sess, remember) {
+  sessionClear();
+  try { sessionStore(remember).setItem(LS_SESSION, JSON.stringify(sess)); } catch { /* ignore */ }
+}
+function sessionClear() {
+  try { localStorage.removeItem(LS_SESSION); sessionStorage.removeItem(LS_SESSION); } catch { /* ignore */ }
+}
 
+function scrollToNow() {
+  requestAnimationFrame(() => { board.scrollLeft = Math.max(0, (new Date().getHours() - 2) * COL); });
+}
+
+function showApp() {
+  document.body.dataset.view = "app";
+  $("#who").textContent = `${session.display}\u2019s timetable`;
+  render();
+  scrollToNow();
+}
+
+function startSession(sess, remember, tasks) {
+  session = sess;
+  loaded = true;
+  sessionWrite(sess, remember);
+  state.tasks = normalizeAll(tasks);
+  saveLocal();
+  lsDel(pendingKey());
+  setStatus("ok", "Saved");
+  showApp();
+}
+
+function signOut(message = "") {
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  if (session) { lsDel(tasksKey()); lsDel(pendingKey()); }
+  sessionClear();
+  session = null;
+  loaded = false;
+  state.tasks = [];
+  $("#sheet").replaceChildren();
+  $("#g-pin").value = "";
+  $("#g-pin2").value = "";
+  document.body.dataset.view = "gate";
+  $("#g-err").textContent = message;
+  $("#g-name").focus();
+}
+$("#signout").addEventListener("click", () => signOut());
+
+/* Pull the latest copy from the server for a saved session */
+async function refresh() {
   setStatus("saving", "Loading");
   try {
     const r = await fetch(API, { headers: authHeaders(false) });
-    if (r.status === 401) return setStatus("locked", "Enter access key");
+    if (r.status === 401 || r.status === 404) return signOut("Please sign in again.");
     if (!r.ok) throw new Error("HTTP " + r.status);
     const data = await r.json();
-    const remote = normalizeAll(data.tasks);
     loaded = true;
-
-    if (remote.length) {
-      state.tasks = remote;
-      saveLocal();
-      render();
-      setStatus("ok", "Saved");
-    } else if (state.tasks.length) {
-      sync();                                   // upload what's on this device
-    } else if (data.updatedAt == null && !lsGet(LS_SEEDED)) {
-      seed();                                   // brand new: show the sample week
-      sync();
-    } else {
-      render();
-      setStatus("ok", "Saved");
-    }
+    if (lsGet(pendingKey())) return sync();        // changes made offline win; upload them
+    state.tasks = normalizeAll(data.tasks);
+    saveLocal();
+    render();
+    setStatus("ok", "Saved");
   } catch {
     setStatus("error", "Can't reach server. Click to retry");
   }
 }
 
-$("#status").addEventListener("click", () => {
-  const s = $("#status").dataset.state;
-  if (s === "locked") {
-    const key = prompt("Enter your access key");
-    if (!key) return;
-    lsSet(LS_TOKEN, key.trim());
-    loaded ? sync() : load();
-  } else if (s === "error") {
-    loaded ? sync() : load();
+/* ===== Start screen ===== */
+let mode = "open";
+function setMode(m) {
+  mode = m;
+  const create = m === "create";
+  $("#g-create").hidden = !create;
+  $("#g-submit").textContent = create ? "Create my timetable" : "Open my timetable";
+  $("#g-toggle").textContent = create ? "I already have a timetable" : "New here? Create a timetable";
+  $("#g-sub").textContent = create ? "Pick a name and a PIN. Only you will be able to open it." : "Open your timetable with your name and PIN.";
+  $("#g-hint").textContent = create
+    ? "There is no PIN reset, so pick one you will remember. Names are not case sensitive."
+    : "Names are not case sensitive. Each name has its own private timetable.";
+  $("#g-pin").autocomplete = create ? "new-password" : "current-password";
+  $("#g-err").textContent = "";
+}
+$("#g-toggle").addEventListener("click", () => setMode(mode === "open" ? "create" : "open"));
+
+async function readJson(r) { try { return await r.json(); } catch { return {}; } }
+
+$("#gate-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = (m) => { $("#g-err").textContent = m; };
+  const nameRaw = $("#g-name").value.trim();
+  const slug = slugify(nameRaw);
+  const pin = $("#g-pin").value;
+  const remember = $("#g-remember").checked;
+
+  if (slug.length < 2) return err("Enter a name with at least 2 letters or numbers.");
+  if (!PIN_RE.test(pin)) return err("The PIN must be 4 to 20 characters with no spaces.");
+  if (mode === "create" && pin !== $("#g-pin2").value) return err("The two PINs don't match.");
+
+  const btn = $("#g-submit");
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Please wait";
+  err("");
+  try {
+    if (mode === "open") {
+      const r = await fetch(API, { headers: { "X-Name": slug, "X-Pin": pin } });
+      const data = await readJson(r);
+      if (r.ok) return startSession({ name: slug, display: data.displayName || nameRaw, pin }, remember, data.tasks);
+      if (r.status === 404) return err("No timetable with that name. Check the spelling, or create one.");
+      if (r.status === 401) return err("That PIN doesn't match.");
+      if (r.status === 429) return err(`Too many wrong PINs. Try again in ${Math.max(1, Math.ceil((data.retryAfter || 900) / 60))} minutes.`);
+      return err("Check the name and PIN and try again.");
+    }
+    const tasks = $("#g-sample").checked ? clone(SAMPLE) : [];
+    const r = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: nameRaw, pin, tasks }),
+    });
+    const data = await readJson(r);
+    if (r.status === 201) return startSession({ name: data.name, display: data.displayName, pin }, remember, tasks);
+    if (r.status === 409) return err("That name is taken. Pick another name, or open it with its PIN.");
+    return err("Couldn't create the timetable. Check the name and PIN and try again.");
+  } catch {
+    err("Can't reach the server. Check your connection and try again.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
   }
 });
 
 /* ===== Start ===== */
 buildGrid();
 buildSwatches();
-load();
-setInterval(updateNow, 60000);
-requestAnimationFrame(() => {
-  board.scrollLeft = Math.max(0, (new Date().getHours() - 2) * COL);
-});
+setInterval(() => { if (session) updateNow(); }, 60000);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (session) render(); });
+
+const saved = sessionRead();
+if (saved && saved.name && saved.pin) {
+  session = saved;
+  state.tasks = readLocal();
+  showApp();
+  refresh();
+} else {
+  $("#g-name").focus();
+}
 </script>
 </body>
 </html>
