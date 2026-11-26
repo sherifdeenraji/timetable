@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Weekly timetable</title>
+<meta name="description" content="A clean weekly timetable for students. Add your classes and tasks, see your week at a glance, and export it as a PDF or image.">
+<!-- Replace https://timetable-bh6.pages.dev with your live URL, and drop your exported
+     timetable image at public/preview.png (about 1200x630) for the link preview. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Weekly timetable">
+<meta property="og:description" content="Add your classes and tasks, see your week at a glance, and export it as a PDF or image.">
+<meta property="og:url" content="https://timetable-bh6.pages.dev/">
+<meta property="og:image" content="https://timetable-bh6.pages.dev/preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://timetable-bh6.pages.dev/preview.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230b5fa5'/%3E%3Cpath%20stroke='%23ffffff'%20stroke-width='2.5'%20d='M7%2013h18M7%2019h18M7%2025h18M16%2010v18'%20opacity='.95'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -150,6 +161,33 @@
   .now { position: absolute; top: 0; bottom: 0; width: 2px; background: #d6453d; z-index: 2; pointer-events: none; }
   .now::before { content: ""; position: absolute; top: -1px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: #d6453d; }
 
+  /* ---------- day view: a list of days, then one day's tasks as cards ---------- */
+  #days { display: none; }
+  body[data-board="days"] #days { display: grid; gap: 10px; }
+  body[data-board="days"] #board { display: none; }
+  .dayrow {
+    font: inherit; display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 18px 16px; background: var(--paper); border: 1px solid var(--ink); border-radius: 8px;
+    cursor: pointer; text-align: left;
+  }
+  .dayrow:hover { background: var(--tint); }
+  .dayrow:focus-visible { outline: 3px solid var(--accent-ink); outline-offset: 2px; }
+  .dayrow b { font-weight: 300; font-size: 32px; letter-spacing: -.02em; line-height: 1; }
+  .dayrow small { color: var(--muted); font-size: 13.5px; }
+  .dayrow.today { background: var(--tint); border-color: var(--accent-ink); }
+  .dayrow.today b { color: var(--accent-ink); }
+  .dayhead { display: flex; }
+  #days h2 { margin: 0; }
+  .daycards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .daycard {
+    --fn: 15; --fs: 13;
+    font: inherit; text-align: left; cursor: pointer; border: 0; border-radius: 6px;
+    padding: 10px 11px; color: #0b1624; box-shadow: inset 0 0 0 1px rgba(11, 22, 36, .2);
+    display: grid; gap: 2px; align-content: start; min-height: 86px;
+  }
+  .daycard:hover { filter: brightness(.95); }
+  .daycard:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; }
+
   /* ---------- dialog ---------- */
   dialog {
     border: 0; border-radius: 12px; padding: 0; color: var(--ink);
@@ -163,7 +201,7 @@
   h2 { margin: 0 0 6px; font-size: var(--fs-display-2); font-weight: 300; letter-spacing: -.03em; line-height: 1.05; }
   label.f, legend { display: block; font-size: 13.5px; font-weight: 500; margin: 16px 0 6px; padding: 0; }
   fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-  input[type="text"], input[type="password"], input[type="time"], select, textarea {
+  input[type="text"], input[type="email"], input[type="password"], input[type="time"], select, textarea {
     width: 100%; font: inherit; font-weight: 400; font-size: 15px; color: var(--ink); background: #fff;
     padding: 9px 10px; border: 1px solid var(--field); border-radius: 8px;
   }
@@ -174,8 +212,21 @@
   .hint { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
   .err { margin: 12px 0 0; min-height: 1.4em; font-size: 14px; color: #a3201a; font-weight: 500; }
 
-  .sessions { display: grid; gap: 8px; }
-  .sess { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+  .sessions { display: grid; gap: 10px; }
+  .tg { border: 1px solid var(--field); border-radius: 8px; padding: 10px; display: grid; gap: 9px; }
+  .tg-times { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+  .daychips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { position: relative; }
+  .chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .chip input:disabled { cursor: not-allowed; }
+  .chip span {
+    display: block; padding: 6px 11px; border: 1px solid var(--field); border-radius: 999px;
+    font-size: 13.5px; font-weight: 400; color: var(--muted); background: #fff;
+  }
+  .chip input:checked + span { background: var(--accent-ink); border-color: var(--accent-ink); color: #fff; }
+  .chip input:disabled + span { opacity: .35; }
+  .chip input:focus-visible + span { outline: 3px solid var(--accent-ink); outline-offset: 2px; }
+  .tg-quick { display: flex; gap: 14px; }
   .icon {
     width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--field);
     background: #fff; color: var(--muted); font: inherit; font-size: 20px; line-height: 1; cursor: pointer;
@@ -197,9 +248,6 @@
 
   @media (max-width: 560px) {
     .wrap { padding: 18px 10px 36px; }
-    .sess { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
-    .sess select { grid-column: 1 / -1; }
-    .sess .icon { grid-column: 3; grid-row: 2; }
     h2 { font-size: 40px; }
     .gate-card { padding: 22px 18px; }
   }
@@ -244,10 +292,18 @@
 <section class="gate" id="gate">
   <div class="gate-card">
     <h1>Weekly timetable</h1>
-    <p class="sub" id="g-sub">Open your timetable with your name and PIN.</p>
+    <p class="sub" id="g-sub">Open your timetable with your email and PIN.</p>
     <form id="gate-form" novalidate>
-      <label class="f" for="g-name">Your name</label>
-      <input id="g-name" type="text" maxlength="40" autocomplete="username" placeholder="Your name">
+      <div id="g-names" hidden>
+        <label class="f" for="g-first">First name</label>
+        <input id="g-first" type="text" maxlength="40" autocomplete="given-name" placeholder="First name">
+
+        <label class="f" for="g-last">Last name</label>
+        <input id="g-last" type="text" maxlength="40" autocomplete="family-name" placeholder="Last name">
+      </div>
+
+      <label class="f" for="g-email">Email</label>
+      <input id="g-email" type="email" maxlength="120" autocomplete="email" placeholder="you@example.com">
 
       <label class="f" for="g-pin">PIN</label>
       <input id="g-pin" type="password" maxlength="20" autocomplete="current-password" placeholder="4 to 20 characters, no spaces">
@@ -255,11 +311,14 @@
       <div id="g-create" hidden>
         <label class="f" for="g-pin2">Confirm PIN</label>
         <input id="g-pin2" type="password" maxlength="20" autocomplete="new-password" placeholder="Type the PIN again">
-        <label class="check"><input type="checkbox" id="g-sample" checked> Start with a sample week</label>
+
+        <label class="f" for="g-template">Starting point</label>
+        <select id="g-template"><option value="">Blank timetable</option></select>
+        <p class="hint">Friends who published their timetable show up here, so you can start from theirs and edit.</p>
       </div>
 
       <label class="check"><input type="checkbox" id="g-remember" checked> Stay signed in on this device</label>
-      <p class="hint" id="g-hint">Names are not case sensitive. Each name has its own private timetable.</p>
+      <p class="hint" id="g-hint">Each email has its own timetable.</p>
       <p class="err" id="g-err" role="alert"></p>
 
       <button class="btn primary wide" id="g-submit" type="submit">Open my timetable</button>
@@ -277,6 +336,8 @@
     </div>
     <div class="actions">
       <button id="status" class="status" type="button" data-state="ok" aria-live="polite"><i></i><span>Loading</span></button>
+      <button id="view-toggle" class="btn quiet" type="button">Day view</button>
+      <button id="publish" class="btn quiet" type="button">Publish</button>
       <button id="clear" class="btn quiet" type="button">Clear all</button>
       <button id="export-img" class="btn" type="button">Save image</button>
       <button id="export" class="btn" type="button">Export PDF</button>
@@ -284,8 +345,11 @@
     </div>
   </header>
 
-  <main class="board" id="board">
-    <div class="grid" id="grid"></div>
+  <main>
+    <div class="board" id="board">
+      <div class="grid" id="grid"></div>
+    </div>
+    <section id="days" aria-label="Days"></section>
   </main>
 </div>
 
@@ -305,8 +369,8 @@
     <fieldset>
       <legend>Days and times</legend>
       <div class="sessions" id="sessions"></div>
-      <button type="button" class="btn" id="add-session">Add another day</button>
-      <p class="hint">Each day can have its own time. Any minute works, like 2:30. An end of 00:00 means midnight.</p>
+      <button type="button" class="btn" id="add-session">Add another time</button>
+      <p class="hint">Tick the days this happens. Add another time if some days run at a different time. An end of 00:00 means midnight.</p>
     </fieldset>
 
     <fieldset>
@@ -331,6 +395,8 @@
 <script>
 /* ===== Constants ===== */
 const API = "/api/timetable";
+const API_PUBLISHED = "/api/published";
+const API_EVENT = "/api/event";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const COLORS = [
@@ -339,43 +405,17 @@ const COLORS = [
 ];
 const COL = 68;                 // hour column width in px (matches --col in CSS)
 const SHEET_W = 1047;           // export sheet width in px (A4 landscape inside 10mm margins)
-const LS_SESSION = "timetable.session.v1";
+const LS_SESSION = "timetable.session.v2";
+const LS_VIEW = "timetable.view.v1";
 const HEX = /^#[0-9a-f]{6}$/i;
 const PIN_RE = /^[\x21-\x7E]{4,20}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* Text fitting. Blocks wider than vMin show text normally; narrower blocks turn the text
    sideways so it can use the row height. The row grows until everything fits. */
 const SCALES = [1, .92, .85, .78, .72, .66, .6, .55];
 const SCREEN_CFG = { tag: "button", pad: 4, baseRow: 120, laneMin: 64, padX: 7, padY: 5, vpad: 4, vMin: 90, maxH: 320, maxV: 210 };
 const SHEET_CFG  = { tag: "div",    pad: 3, baseRow: 72,  laneMin: 44, padX: 5, padY: 3, vpad: 3, vMin: 80, maxH: 260, maxV: 160 };
-
-/* Sample week offered to new timetables */
-const wk = (days, start, end) => days.map((day) => ({ day, start, end }));
-const SAMPLE = [
-  { id: "s-deep", name: "Deep work", venue: "Hostel desk", details: "Hardest task first", color: "#a58bf2",
-    sessions: wk([0, 1, 2, 3, 4], 420, 480) },
-  { id: "s-phy", name: "CHM 311 Physical Chemistry", venue: "Chemistry Theatre", details: "Bring the problem set", color: "#1e9af0",
-    sessions: [{ day: 0, start: 480, end: 600 }, { day: 2, start: 600, end: 690 }, { day: 4, start: 540, end: 630 }] },
-  { id: "s-ind", name: "CHM 321 Industrial Processes", venue: "Lecture Hall B", details: "", color: "#1e9af0",
-    sessions: [{ day: 1, start: 480, end: 600 }, { day: 3, start: 660, end: 780 }] },
-  { id: "s-num", name: "MTH 305 Numerical Methods", venue: "Faculty Lecture Hall", details: "", color: "#1e9af0",
-    sessions: [{ day: 0, start: 660, end: 750 }, { day: 3, start: 480, end: 540 }] },
-  { id: "s-lab", name: "CHM 331 Analytical Lab", venue: "Chemistry Lab 2", details: "Lab coat and notebook", color: "#f27d72",
-    sessions: [{ day: 1, start: 840, end: 1020 }] },
-  { id: "s-lunch", name: "Lunch and rest", venue: "Hostel", details: "", color: "#f2b84b",
-    sessions: [{ day: 0, start: 780, end: 870 }, { day: 1, start: 750, end: 840 }, { day: 2, start: 720, end: 810 },
-               { day: 3, start: 810, end: 900 }, { day: 4, start: 690, end: 780 }] },
-  { id: "s-build", name: "Build session", venue: "Department library", details: "Ship one small thing", color: "#4cc38a",
-    sessions: [{ day: 0, start: 960, end: 1080 }, { day: 2, start: 960, end: 1080 }, { day: 4, start: 900, end: 1020 }, { day: 5, start: 420, end: 660 }] },
-  { id: "s-study", name: "Study and assignments", venue: "School library", details: "", color: "#a58bf2",
-    sessions: [{ day: 1, start: 1050, end: 1170 }, { day: 3, start: 960, end: 1080 }] },
-  { id: "s-air", name: "Airdrops", venue: "", details: "Capped at 30 minutes", color: "#b8c0cc",
-    sessions: [{ day: 0, start: 1170, end: 1200 }, { day: 2, start: 1170, end: 1200 }, { day: 4, start: 1170, end: 1200 }, { day: 5, start: 720, end: 780 }] },
-  { id: "s-review", name: "Weekly review", venue: "Hostel", details: "Plan next week", color: "#a58bf2",
-    sessions: [{ day: 6, start: 540, end: 600 }] },
-  { id: "s-free", name: "Rest and play", venue: "", details: "K-drama, TikTok, games", color: "#b8c0cc",
-    sessions: [{ day: 5, start: 1140, end: 1290 }, { day: 6, start: 840, end: 1020 }] },
-];
 
 /* ===== Helpers ===== */
 const $ = (s) => document.querySelector(s);
@@ -403,15 +443,6 @@ function fromInput(v) {
 }
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 const todayIdx = () => (new Date().getDay() + 6) % 7;
-const clone = (x) => JSON.parse(JSON.stringify(x));
-
-/* Same rule as the server, so a name always maps to the same timetable */
-function slugify(s) {
-  return String(s || "")
-    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
-    .slice(0, 32).replace(/-+$/, "");
-}
 
 function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } }
@@ -419,7 +450,7 @@ function lsDel(k) { try { localStorage.removeItem(k); } catch { /* storage unava
 
 /* ===== Data ===== */
 let state = { tasks: [] };
-let session = null; // { name, display, pin }
+let session = null; // { email, display, slug, pin, remember, published }
 
 function normalize(t) {
   if (!t || typeof t !== "object" || !t.name) return null;
@@ -441,8 +472,8 @@ function normalize(t) {
 }
 const normalizeAll = (list) => (Array.isArray(list) ? list.map(normalize).filter(Boolean) : []);
 
-const tasksKey = () => "timetable.tasks.v3." + session.name;
-const pendingKey = () => "timetable.pending.v3." + session.name;
+const tasksKey = () => "timetable.tasks.v4." + session.slug;
+const pendingKey = () => "timetable.pending.v4." + session.slug;
 function readLocal() {
   try { return normalizeAll(JSON.parse(lsGet(tasksKey()) || "[]")); } catch { return []; }
 }
@@ -571,14 +602,76 @@ function buildGrid() {
   });
 }
 
+let view = lsGet(LS_VIEW) || (matchMedia("(max-width: 700px)").matches ? "days" : "grid");
+let dayOpen = null;   // which day the day view has open, or null for the list
+
 function render() {
   if (document.body.dataset.view !== "app") return;   // needs to be visible to measure text
+  if (view === "days") return renderDays();
   document.querySelectorAll(".track").forEach((track) => {
     const { items, lane, lanes } = layoutDay(+track.dataset.day);
     placeTrack(track, items, lane, lanes, SCREEN_CFG, 0, 1440);
   });
   updateNow();
 }
+
+/* ===== Day view: a list of days, then one day's tasks as cards ===== */
+function renderDays() {
+  const wrap = $("#days");
+  wrap.replaceChildren();
+  const ti = todayIdx();
+
+  if (dayOpen === null) {
+    DAYS.forEach((d, di) => {
+      const n = state.tasks.reduce((c, t) => c + t.sessions.filter((s) => s.day === di).length, 0);
+      const row = h("button", { type: "button", class: "dayrow" + (di === ti ? " today" : "") },
+        h("b", {}, d), h("small", {}, n ? (n === 1 ? "1 task" : `${n} tasks`) : "Free"));
+      row.addEventListener("click", () => { dayOpen = di; renderDays(); });
+      wrap.append(row);
+    });
+    return;
+  }
+
+  const di = dayOpen;
+  const back = h("button", { type: "button", class: "btn quiet" }, "← All days");
+  back.addEventListener("click", () => { dayOpen = null; renderDays(); });
+
+  const items = [];
+  state.tasks.forEach((t) => t.sessions.forEach((s) => { if (s.day === di) items.push({ t, s }); }));
+  items.sort((a, b) => a.s.start - b.s.start || a.s.end - b.s.end);
+
+  const cards = h("div", { class: "daycards" }, items.map(({ t, s }) => {
+    const card = h("button", {
+      type: "button", class: "daycard", "data-task": t.id,
+      style: `background:${HEX.test(t.color) ? t.color : COLORS[0][0]}`,
+    },
+      h("span", { class: "t-name" }, t.name),
+      h("span", { class: "t-time" }, `${fmt(s.start)} – ${fmt(s.end)}`),
+      t.venue ? h("span", { class: "t-venue" }, t.venue) : null,
+      t.details ? h("span", { class: "t-details" }, t.details) : null);
+    card.addEventListener("click", () => openForm({ id: t.id }));
+    return card;
+  }));
+
+  const add = h("button", { type: "button", class: "btn wide" }, `Add a task on ${DAYS[di]}`);
+  add.addEventListener("click", () => openForm({ day: di, start: 540, end: 600 }));
+
+  wrap.append(
+    h("div", { class: "dayhead" }, back),
+    h("h2", {}, DAYS[di] + (di === ti ? " · today" : "")),
+    items.length ? cards : h("p", { class: "hint" }, `Nothing on ${DAYS[di]} yet.`),
+    add);
+}
+
+function setBoardView(v) {
+  view = v;
+  lsSet(LS_VIEW, v);
+  document.body.dataset.board = v;
+  $("#view-toggle").textContent = v === "grid" ? "Day view" : "Week grid";
+  render();
+  if (v === "grid") scrollToNow();
+}
+$("#view-toggle").addEventListener("click", () => setBoardView(view === "grid" ? "days" : "grid"));
 
 /* current-time marker on today's row */
 const nowEl = h("div", { class: "now", "aria-hidden": "true" });
@@ -614,41 +707,70 @@ function buildSwatches() {
   });
 }
 
-function updateRemove() {
-  const rows = $("#sessions").children;
-  [...rows].forEach((r) => { r.querySelector(".icon").disabled = rows.length === 1; });
+/* Each time group is one start/end time plus the days it applies to. A day ticked in
+   one group is disabled in the others, so the same day can never be added twice. */
+function syncChips() {
+  const groups = [...$("#sessions").children];
+  const owner = new Map();   // day index -> the group that has it ticked
+  groups.forEach((gr) => gr.querySelectorAll(".daychips input").forEach((c) => {
+    if (c.checked) owner.set(+c.value, gr);
+  }));
+  groups.forEach((gr) => {
+    gr.querySelectorAll(".daychips input").forEach((c) => {
+      const o = owner.get(+c.value);
+      c.disabled = !!o && o !== gr;
+    });
+    gr.querySelector(".icon").disabled = groups.length === 1;
+  });
 }
 
-function addSessionRow(s) {
-  const day = h("select", { "aria-label": "Day" }, DAYS.map((d, i) => h("option", { value: i }, d)));
-  day.value = s.day;
+function addGroup(g) {
   const start = h("input", { type: "time", "aria-label": "Starts" });
-  start.value = toInput(s.start);
+  start.value = toInput(g.start);
   const end = h("input", { type: "time", "aria-label": "Ends" });
-  end.value = toInput(s.end);
-  const rm = h("button", { type: "button", class: "icon", "aria-label": "Remove this day" }, "\u00d7");
-  const row = h("div", { class: "sess" }, day, start, end, rm);
-  rm.addEventListener("click", () => { row.remove(); updateRemove(); });
-  $("#sessions").append(row);
-  updateRemove();
+  end.value = toInput(g.end);
+  const rm = h("button", { type: "button", class: "icon", "aria-label": "Remove this time" }, "\u00d7");
+
+  const chips = h("div", { class: "daychips" }, DAYS.map((d, i) => {
+    const c = h("input", { type: "checkbox", value: i, "aria-label": d });
+    c.checked = g.days.includes(i);
+    c.addEventListener("change", syncChips);
+    return h("label", { class: "chip" }, c, h("span", {}, SHORT[i]));
+  }));
+  const pick = (days) => {
+    chips.querySelectorAll("input").forEach((c) => { if (!c.disabled) c.checked = days.includes(+c.value); });
+    syncChips();
+  };
+  const weekdays = h("button", { type: "button", class: "link" }, "Weekdays");
+  weekdays.addEventListener("click", () => pick([0, 1, 2, 3, 4]));
+  const all = h("button", { type: "button", class: "link" }, "All days");
+  all.addEventListener("click", () => pick([0, 1, 2, 3, 4, 5, 6]));
+
+  const group = h("div", { class: "tg" },
+    h("div", { class: "tg-times" }, start, end, rm),
+    chips,
+    h("div", { class: "tg-quick" }, weekdays, all));
+  rm.addEventListener("click", () => { group.remove(); syncChips(); });
+  $("#sessions").append(group);
+  syncChips();
 }
 
-function readSessions() {
-  return [...$("#sessions").children].map((row) => {
-    const [day, start, end] = row.querySelectorAll("select, input");
+function readGroups() {
+  return [...$("#sessions").children].map((gr) => {
+    const [start, end] = gr.querySelectorAll('input[type="time"]');
     let e = fromInput(end.value);
     if (e === 0) e = 1440; // 00:00 as an end time means midnight
-    return { day: +day.value, start: fromInput(start.value), end: e };
+    return {
+      start: fromInput(start.value), end: e,
+      days: [...gr.querySelectorAll(".daychips input:checked")].map((c) => +c.value),
+    };
   });
 }
 
 $("#add-session").addEventListener("click", () => {
-  const cur = readSessions();
-  const last = cur[cur.length - 1] || { day: todayIdx(), start: 540, end: 600 };
-  const used = new Set(cur.map((s) => s.day));
-  let d = (last.day + 1) % 7;
-  for (let i = 0; i < 7 && used.has(d); i++) d = (d + 1) % 7;
-  addSessionRow({ day: d, start: last.start ?? 540, end: last.end ?? 600 });
+  const cur = readGroups();
+  const last = cur[cur.length - 1] || { start: 540, end: 600 };
+  addGroup({ start: last.start ?? 540, end: last.end ?? 600, days: [] });
 });
 
 function openForm({ id = null, day = todayIdx(), start = 540, end = 600 } = {}) {
@@ -661,7 +783,13 @@ function openForm({ id = null, day = todayIdx(), start = 540, end = 600 } = {}) 
   $("#f-venue").value = t ? t.venue : "";
   $("#f-details").value = t ? t.details : "";
   $("#sessions").replaceChildren();
-  (t ? t.sessions : [{ day, start, end }]).forEach(addSessionRow);
+  const groups = [];
+  (t ? t.sessions : [{ day, start, end }]).forEach((s) => {
+    const g = groups.find((x) => x.start === s.start && x.end === s.end);
+    if (g) g.days.push(s.day);
+    else groups.push({ start: s.start, end: s.end, days: [s.day] });
+  });
+  groups.forEach(addGroup);
   const color = t ? t.color.toLowerCase() : COLORS[0][0];
   form.querySelectorAll('input[name="color"]').forEach((r) => { r.checked = r.value === color; });
   $("#err").textContent = "";
@@ -678,14 +806,16 @@ form.addEventListener("submit", (e) => {
   e.preventDefault();
   const fail = (m) => { $("#err").textContent = m; };
   const name = $("#f-name").value.trim();
-  const sessions = readSessions();
+  const groups = readGroups();
   const color = form.querySelector('input[name="color"]:checked')?.value || COLORS[0][0];
 
   if (!name) return fail("Enter a task name.");
-  for (const s of sessions) {
-    if (s.start == null || s.end == null) return fail(`${DAYS[s.day]}: enter a start and end time.`);
-    if (s.end <= s.start) return fail(`${DAYS[s.day]}: the end time must be after the start time.`);
+  for (const g of groups) {
+    if (g.start == null || g.end == null) return fail("Enter a start and end time for each time row.");
+    if (g.end <= g.start) return fail("The end time must be after the start time.");
+    if (!g.days.length) return fail("Tick at least one day for each time row.");
   }
+  const sessions = groups.flatMap((g) => g.days.map((day) => ({ day, start: g.start, end: g.end })));
 
   const fields = {
     name, venue: $("#f-venue").value.trim(), details: $("#f-details").value.trim(), color,
@@ -730,7 +860,8 @@ board.addEventListener("click", (e) => {
 
 $("#add").addEventListener("click", () => {
   const hour = Math.min(new Date().getHours() + 1, 23);
-  openForm({ day: todayIdx(), start: hour * 60, end: hour * 60 + 60 });
+  const day = view === "days" && dayOpen !== null ? dayOpen : todayIdx();
+  openForm({ day, start: hour * 60, end: hour * 60 + 60 });
 });
 
 $("#clear").addEventListener("click", () => {
@@ -787,7 +918,7 @@ function buildSheet() {
 }
 
 window.addEventListener("beforeprint", buildSheet);
-$("#export").addEventListener("click", () => { buildSheet(); window.print(); });
+$("#export").addEventListener("click", () => { buildSheet(); logUse("export_pdf"); window.print(); });
 
 $("#export-img").addEventListener("click", async (e) => {
   const btn = e.currentTarget;
@@ -816,12 +947,13 @@ $("#export-img").addEventListener("click", async (e) => {
       },
     });
     canvas.toBlob((blob) => {
-      const a = h("a", { href: URL.createObjectURL(blob), download: `timetable-${session.name}.png` });
+      const a = h("a", { href: URL.createObjectURL(blob), download: `timetable-${session.slug}.png` });
       document.body.append(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     }, "image/png");
+    logUse("export_img");
   } catch {
     alert("Couldn't create the image. Try again, or use Export PDF.");
   } finally {
@@ -840,10 +972,50 @@ function setStatus(stateName, text) {
 }
 
 const authHeaders = (json) => {
-  const hd = { "X-Name": session.name, "X-Pin": session.pin };
+  const hd = { "X-Email": session.email, "X-Pin": session.pin };
   if (json) hd["Content-Type"] = "application/json";
   return hd;
 };
+
+/* fire-and-forget usage logging; never blocks or breaks anything */
+function logUse(type) {
+  if (!session) return;
+  fetch(API_EVENT, { method: "POST", headers: authHeaders(true), body: JSON.stringify({ type }), keepalive: true })
+    .catch(() => { /* analytics only */ });
+}
+
+/* ===== Publishing ===== */
+function updatePublish() {
+  $("#publish").textContent = session && session.published ? "Published ✓" : "Publish";
+}
+
+async function setPublished(want) {
+  const btn = $("#publish");
+  btn.disabled = true;
+  try {
+    const r = await fetch(API_EVENT, {
+      method: "POST", headers: authHeaders(true),
+      body: JSON.stringify({ type: want ? "publish" : "unpublish" }),
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    session.published = want;
+    sessionWrite(session, session.remember);
+    updatePublish();
+  } catch {
+    alert("Couldn't update publishing. Check your connection and try again.");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+$("#publish").addEventListener("click", () => {
+  if (!session) return;
+  if (!session.published) {
+    if (confirm("Publish your timetable? Anyone using this app will be able to view it and use it as a starting point for theirs.")) setPublished(true);
+  } else if (confirm("Stop sharing your timetable? People who already copied it keep their copy.")) {
+    setPublished(false);
+  }
+});
 
 function commit() {
   render();
@@ -905,15 +1077,18 @@ function scrollToNow() {
 
 function showApp() {
   document.body.dataset.view = "app";
+  document.body.dataset.board = view;
+  $("#view-toggle").textContent = view === "grid" ? "Day view" : "Week grid";
   $("#who").textContent = `${session.display}\u2019s timetable`;
+  updatePublish();
   render();
-  scrollToNow();
+  if (view === "grid") scrollToNow();
 }
 
-function startSession(sess, remember, tasks) {
+function startSession(sess, tasks) {
   session = sess;
   loaded = true;
-  sessionWrite(sess, remember);
+  sessionWrite(sess, sess.remember);
   state.tasks = normalizeAll(tasks);
   saveLocal();
   lsDel(pendingKey());
@@ -929,12 +1104,13 @@ function signOut(message = "") {
   session = null;
   loaded = false;
   state.tasks = [];
+  dayOpen = null;
   $("#sheet").replaceChildren();
   $("#g-pin").value = "";
   $("#g-pin2").value = "";
   document.body.dataset.view = "gate";
   $("#g-err").textContent = message;
-  $("#g-name").focus();
+  $("#g-email").focus();
 }
 $("#signout").addEventListener("click", () => signOut());
 
@@ -947,6 +1123,11 @@ async function refresh() {
     if (!r.ok) throw new Error("HTTP " + r.status);
     const data = await r.json();
     loaded = true;
+    if (session.published !== !!data.published) {
+      session.published = !!data.published;
+      sessionWrite(session, session.remember);
+      updatePublish();
+    }
     if (lsGet(pendingKey())) return sync();        // changes made offline win; upload them
     state.tasks = normalizeAll(data.tasks);
     saveLocal();
@@ -962,31 +1143,55 @@ let mode = "open";
 function setMode(m) {
   mode = m;
   const create = m === "create";
+  $("#g-names").hidden = !create;
   $("#g-create").hidden = !create;
   $("#g-submit").textContent = create ? "Create my timetable" : "Open my timetable";
   $("#g-toggle").textContent = create ? "I already have a timetable" : "New here? Create a timetable";
-  $("#g-sub").textContent = create ? "Pick a name and a PIN. Only you will be able to open it." : "Open your timetable with your name and PIN.";
+  $("#g-sub").textContent = create ? "Tell us who you are and pick a PIN." : "Open your timetable with your email and PIN.";
   $("#g-hint").textContent = create
-    ? "There is no PIN reset, so pick one you will remember. Names are not case sensitive."
-    : "Names are not case sensitive. Each name has its own private timetable.";
+    ? "There is no PIN reset yet, so pick one you will remember."
+    : "Each email has its own timetable.";
   $("#g-pin").autocomplete = create ? "new-password" : "current-password";
   $("#g-err").textContent = "";
+  if (create) loadTemplates();
 }
 $("#g-toggle").addEventListener("click", () => setMode(mode === "open" ? "create" : "open"));
+
+/* Published timetables offered as starting points when creating */
+let templatesLoaded = false;
+async function loadTemplates() {
+  if (templatesLoaded) return;
+  try {
+    const r = await fetch(API_PUBLISHED);
+    if (!r.ok) return;
+    const data = await r.json();
+    templatesLoaded = true;
+    const sel = $("#g-template");
+    (data.timetables || []).forEach((t) => {
+      const n = t.taskCount === 1 ? "1 task" : `${t.taskCount} tasks`;
+      sel.append(h("option", { value: t.slug }, `${t.displayName}’s timetable · ${n}`));
+    });
+  } catch { /* fine; blank start still works */ }
+}
 
 async function readJson(r) { try { return await r.json(); } catch { return {}; } }
 
 $("#gate-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const err = (m) => { $("#g-err").textContent = m; };
-  const nameRaw = $("#g-name").value.trim();
-  const slug = slugify(nameRaw);
+  const email = $("#g-email").value.trim().toLowerCase();
   const pin = $("#g-pin").value;
   const remember = $("#g-remember").checked;
 
-  if (slug.length < 2) return err("Enter a name with at least 2 letters or numbers.");
+  if (!EMAIL_RE.test(email)) return err("Enter a valid email address.");
   if (!PIN_RE.test(pin)) return err("The PIN must be 4 to 20 characters with no spaces.");
-  if (mode === "create" && pin !== $("#g-pin2").value) return err("The two PINs don't match.");
+  let first = "", last = "";
+  if (mode === "create") {
+    first = $("#g-first").value.trim();
+    last = $("#g-last").value.trim();
+    if (!first || !last) return err("Enter your first and last name.");
+    if (pin !== $("#g-pin2").value) return err("The two PINs don't match.");
+  }
 
   const btn = $("#g-submit");
   const label = btn.textContent;
@@ -995,24 +1200,31 @@ $("#gate-form").addEventListener("submit", async (e) => {
   err("");
   try {
     if (mode === "open") {
-      const r = await fetch(API, { headers: { "X-Name": slug, "X-Pin": pin } });
+      const r = await fetch(API, { headers: { "X-Email": email, "X-Pin": pin, "X-Signin": "1" } });
       const data = await readJson(r);
-      if (r.ok) return startSession({ name: slug, display: data.displayName || nameRaw, pin }, remember, data.tasks);
-      if (r.status === 404) return err("No timetable with that name. Check the spelling, or create one.");
+      if (r.ok) return startSession({ email, display: data.displayName, slug: data.slug, pin, remember, published: !!data.published }, data.tasks);
+      if (r.status === 404) return err("No timetable with that email. Check the spelling, or create one.");
       if (r.status === 401) return err("That PIN doesn't match.");
       if (r.status === 429) return err(`Too many wrong PINs. Try again in ${Math.max(1, Math.ceil((data.retryAfter || 900) / 60))} minutes.`);
-      return err("Check the name and PIN and try again.");
+      return err("Check the email and PIN and try again.");
     }
-    const tasks = $("#g-sample").checked ? clone(SAMPLE) : [];
+    let tasks = [];
+    const source = $("#g-template").value;
+    if (source) {
+      const tr = await fetch(API_PUBLISHED + "?slug=" + encodeURIComponent(source));
+      if (!tr.ok) return err("Couldn't load that timetable. Try again, or start blank.");
+      const td = await readJson(tr);
+      tasks = normalizeAll(td.tasks).map((t) => ({ ...t, id: uid() }));
+    }
     const r = await fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName: nameRaw, pin, tasks }),
+      body: JSON.stringify({ firstName: first, lastName: last, email, pin, tasks, source: source || undefined }),
     });
     const data = await readJson(r);
-    if (r.status === 201) return startSession({ name: data.name, display: data.displayName, pin }, remember, tasks);
-    if (r.status === 409) return err("That name is taken. Pick another name, or open it with its PIN.");
-    return err("Couldn't create the timetable. Check the name and PIN and try again.");
+    if (r.status === 201) return startSession({ email, display: data.displayName, slug: data.slug, pin, remember, published: false }, tasks);
+    if (r.status === 409) return err("That email already has a timetable. Open it instead.");
+    return err("Couldn't create the timetable. Check the details and try again.");
   } catch {
     err("Can't reach the server. Check your connection and try again.");
   } finally {
@@ -1028,13 +1240,14 @@ setInterval(() => { if (session) updateNow(); }, 60000);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (session) render(); });
 
 const saved = sessionRead();
-if (saved && saved.name && saved.pin) {
+if (saved && saved.email && saved.slug && saved.pin) {
   session = saved;
   state.tasks = readLocal();
   showApp();
   refresh();
 } else {
-  $("#g-name").focus();
+  sessionClear();   // an old-format session can't be used any more
+  $("#g-email").focus();
 }
 </script>
 </body>
