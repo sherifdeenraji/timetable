@@ -934,7 +934,7 @@ $("#export-img").addEventListener("click", async (e) => {
     buildSheet();
     const sheet = $("#sheet");
     const canvas = await html2canvas(sheet, {
-      scale: 2,
+      scale: 5,
       backgroundColor: "#ffffff",
       windowWidth: SHEET_W + 80,
       onclone: (doc) => {
